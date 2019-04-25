@@ -1,6 +1,0 @@
-port the code from ../gdavis or /usr/src/jcomeauictx/curvature to JavaScript,
-either using a client/server mechanism, Chrome extension, or something else.
-
-chrome extension is problematic in that it doesn't run in the page itself,
-so console.log doesn't go to the page's console, objects created also aren't
-visible on page. maybe better client/server.

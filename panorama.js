@@ -314,7 +314,7 @@ com.jcomeau.panorama.height = function(north, east, array, correct) {
     if (!array) array = cjp.data[cjp.getPrefix(north, east)];
     let height = array[index];
     if (correct) {
-        console.log("height before correction:", height);
+        //console.log("height before correction:", height);
         /* this is for interpolating between points, so close-by objects don't
          * appear flat when plotting the panorama and scanning over the same
          * x/y coordinate each `look`. we will only interpolate east-west, and
@@ -331,7 +331,7 @@ com.jcomeau.panorama.height = function(north, east, array, correct) {
             if (x == cjp.side) height += decimal * (height - array[index - 1]);
             else height += decimal * (array[index + 1] - height);
         }
-        console.log("height:", height, "x:", x, "decimal:", decimal);
+        //console.log("height:", height, "x:", x, "decimal:", decimal);
     } 
     return height;
 };
@@ -371,7 +371,7 @@ com.jcomeau.panorama.look = function(bearing, north, east, distance) {
             break;
         }
         index = cjp.indexOf(north, east);
-        height = cjp.height(north, east, cjp.data[prefix]);
+        height = cjp.height(north, east, cjp.data[prefix], true);
         if (cjp.context) cjp.image.data[index * 4] = 255;  // pixel to red
         elevations.push(height);
         [north, east] = cjp.move(north, east, radians, travel);

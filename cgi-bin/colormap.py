@@ -6,8 +6,11 @@ RGB values from Wikipedia, but massaged to come out to exactly 1
 '''
 import sys, os, math, json, struct
 from common import logging, STORAGE, init
-from PIL import Image
 from collections import OrderedDict
+try:
+    from PIL import Image
+except ImportError:
+    logging.warn('Cannot display test image.')
 
 OPAQUE = 255
 NONE = TRANSPARENT = BLACK = 0
@@ -60,7 +63,7 @@ def create_colormap(view=False):
                     })
     values = len(colormap)
     logging.debug('colormap length: %d', values)
-    if (view):
+    if (view) and 'Image' in globals():
         # display an image of the expected values
         width = height = 100
         start = -1000
@@ -82,6 +85,7 @@ def colormap(force=False, view=False):
     '''
     return cached file or create a new one
     '''
+    logging.info('colormap() called, force: %s, view: %s', force, view)
     init()
     print('content-type: text/json\r\n\r\n', end='')
     if os.path.exists(MAPFILE) and not force:

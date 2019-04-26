@@ -44,4 +44,7 @@ edit: Makefile panorama.js
 	vi $+ $(REF)
 %.doctest: %.py
 	python3 -m doctest $<
+androiddebug:
+	$(BROWSER) 'chrome://inspect/#devices'
+	@echo You will need to refresh the page for it to work.
 .FORCE:

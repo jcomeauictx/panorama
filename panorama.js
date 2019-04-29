@@ -222,7 +222,8 @@ com.jcomeau.panorama.panorama = function(id, latitude, longitude, bearing,
     // initializers for bad pixels
     const nearest = [0, -horizon, imageHeight - 1];
     const farthest = [0, 0, horizon - 1];
-    height += cjp.height(latitude, longitude);
+    // add height of where we're standing to height of our eyes
+    height += cjp.height(latitude, longitude, null, true);
     while (angle < radians + halfspan) {
         //console.log("angle:", angle, "finished at:", radians + halfspan);
         elevations.push(cjp.look(Math.degrees(angle), latitude, longitude,
@@ -241,10 +242,6 @@ com.jcomeau.panorama.panorama = function(id, latitude, longitude, bearing,
             elevations[elevations.length - 1][i][yCartesian] = projected;
             elevations[elevations.length - 1][i][yImage] =
                 horizon - 1 - projected;
-            if (false && i < 4) console.log(
-                "elevation:", elevation,
-                "theta:", theta,
-                "projected:", projected)
         }
         angle += deltaBearing;
     }
@@ -293,6 +290,9 @@ com.jcomeau.panorama.panorama = function(id, latitude, longitude, bearing,
                 // mark the top of every ridge
                 if (y < context[farther][yImage]) {
                     cjp.putpixel(canvas, image, [x, y], ridgecolor);
+                    if (ridgecolor == cjp.palette.black) console.log(
+                        "drawing ridge at " + [x, y] + ", elevation " +
+                        context[current][raw]);
                 // don't overwrite black pixel from previous ridgeline
                 } else if (y > context[farther][yImage] ||
                         cjp.getpixel(canvas, image, [x, y]) != ridgecolor) {

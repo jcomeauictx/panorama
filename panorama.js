@@ -4,6 +4,7 @@ com.jcomeau.panorama = {};
 com.jcomeau.panorama.sampleSeconds = 3;  // SRTM3 data
 com.jcomeau.panorama.side =
     ((60 * 60) / com.jcomeau.panorama.sampleSeconds) + 1;
+// increment is fraction of a degree per sample
 com.jcomeau.panorama.increment = 1.0 / (com.jcomeau.panorama.side - 1);
 /* when multiplying the fractional part of latitude or longitude to get the
  * row or column offset, the vagaries of floating point multiplication may get
@@ -12,6 +13,10 @@ com.jcomeau.panorama.increment = 1.0 / (com.jcomeau.panorama.side - 1);
  * not introduce a large error in the interpolated height calculation
  */
 com.jcomeau.panorama.correction = com.jcomeau.panorama.increment / 10000;
+/* threshold is for use in interpolating between elevations, so we don't
+ * get blocky panoramas when nearby samples are scanned multiple times
+ */
+com.jcomeau.panorama.threshold = com.jcomeau.panorama.increment / 2;
 // WGS-84 https://en.wikipedia.org/wiki/World_Geodetic_System
 com.jcomeau.panorama.globeRadius = 6378137;  // meters at equator
 com.jcomeau.panorama.degree = (com.jcomeau.panorama.globeRadius
@@ -168,13 +173,34 @@ com.jcomeau.panorama.getElevationData = function(north, east) {
 };
 com.jcomeau.panorama.indexOf = function(north, east) {
     const cjp = com.jcomeau.panorama;
-    var northOffset = north - Math.trunc(north) + cjp.correction;
-    var eastOffset = east - Math.trunc(east) + cjp.correction;
-    var northIndex = Math.abs(Math.floor(northOffset / cjp.increment));
-    if (north >= 0) northIndex = cjp.side - 1 - northIndex;
-    var eastIndex = Math.abs(Math.floor(eastOffset / cjp.increment));
-    if (east < 0) eastIndex = cjp.side - 1 - eastIndex;
-    var index = northIndex * cjp.side + eastIndex;
+    let northOffset = north - Math.trunc(north) + cjp.correction;
+    let eastOffset = east - Math.trunc(east) + cjp.correction;
+    let northCorrection = (north - Math.trunc(north)) % cjp.increment;
+    let nextNorth = northCorrection < cjp.threshold ? -1 : 1;
+    let eastCorrection = (east - Math.trunc(east)) % cjp.increment;
+    let nextEast = eastCorrection < cjp.threshold ? -1 : 1;
+    let northIndex = Math.abs(Math.floor(northOffset / cjp.increment));
+    let northInverted = false, eastInverted = false;
+    if (north >= 0) {
+        northIndex = cjp.side - 1 - northIndex;
+        nextNorth = -nextNorth;
+    }
+    let eastIndex = Math.abs(Math.floor(eastOffset / cjp.increment));
+    if (east < 0) {
+        eastIndex = cjp.side - 1 - eastIndex;
+        nextEast = -nextEast;
+    }
+    nextNorth += northIndex;
+    if (nextNorth == -1 || nextNorth == cjp.side) {
+        nextNorth = nextNorth == cjp.side ? cjp.side - 2 : 1;
+        northInverted = true;
+    }
+    nextEast += eastIndex;
+    if (nextEast == -1 || nextEast == cjp.side) {
+        nextEast = nextEast == cjp.side ? cjp.side - 2 : 1;
+        eastInverted = true;
+    }
+    let index = northIndex * cjp.side + eastIndex;
     return index;
 };
 com.jcomeau.panorama.reverseMapping = function(prefix, x, y) {
@@ -204,9 +230,13 @@ com.jcomeau.panorama.panorama = function(id, latitude, longitude, bearing,
     const canvasContext = canvas.getContext("2d");
     const radians = Math.radians(bearing), spanRadians = Math.radians(span);
     const halfspan = spanRadians / 2;
+    // step is the distance covered as we move along each radial line
+    // move is the distance covered at `distance` as the span progresses
+    // FIXME: these aren't yet used consistently here, and in particular the
+    // `projected` formula needs to use the ratio between the two.
     const step = cjp.sample, move = cjp.sample;
     const viewrange = distance * 1000;  // km to meters
-    const deltaBearing = Math.asin(step / viewrange)
+    const deltaBearing = Math.asin(move / viewrange)
     let angle = radians - halfspan
     /* elevations will be expressed in 3 ways:
      * 0. actual elevation above sea level;
@@ -227,7 +257,7 @@ com.jcomeau.panorama.panorama = function(id, latitude, longitude, bearing,
     while (angle < radians + halfspan) {
         //console.log("angle:", angle, "finished at:", radians + halfspan);
         elevations.push(cjp.look(Math.degrees(angle), latitude, longitude,
-                                    distance, step)
+                                    distance, move)
             .map(elevation => [elevation].concat(nearest.slice(yCartesian))));
         for (let i = 1; i < elevations[elevations.length - 1].length; i++) {
             elevation = elevations[elevations.length - 1][i][raw];
@@ -317,7 +347,7 @@ com.jcomeau.panorama.height = function(north, east, array, correct) {
         //console.log("height before correction:", height);
         /* this is for interpolating between points, so close-by objects don't
          * appear flat when plotting the panorama and scanning over the same
-         * x/y coordinate each `look`. we will only interpolate east-west, and
+         * x/y coordinate each `look`.
          * if we're at the end of the row we'll assume the slope is continuous
          * from the other direction. that is, if we're at 5 meters at x=0,
          * and array[1] is 6 meters, we'll assume the next cell west is 4.
@@ -356,11 +386,10 @@ com.jcomeau.panorama.runTests = function() {
     cjp.makeTestData('N0E0');
     console.log("height at (0, 0)", cjp.height(0, 0, cjp.data['N0E0']));
 };
-com.jcomeau.panorama.look = function(bearing, north, east, distance) {
+com.jcomeau.panorama.look = function(bearing, north, east, distance, travel) {
     const cjp = com.jcomeau.panorama;
     let elevations = [], height, index, prefix;
     let traversed = 0;
-    let travel = cjp.sample;
     distance *= 1000;  // km to meters
     //console.log("north:", north, "east:", east, "sample:", travel);
     radians = cjp.cartesian(bearing);

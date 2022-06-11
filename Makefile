@@ -9,6 +9,7 @@ VALIDATOR := https://validator.w3.org/nu
 REF := ../../gdavis/{panorama,earthcurvature,hgtread}.py
 URL := http://$(HOST):$(PORT)/?latitude=24.164640&longitude=-110.312864&bearing=-20.0
 export
+all: serve test
 $(TMP)/panorama.zip: $(TMP)/panorama Makefile
 	rm -f $@
 	cd $(@D) && zip -r $(@F) $(<F)

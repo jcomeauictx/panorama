@@ -8,7 +8,8 @@ from tempfile import gettempdir
 from common import logging, STORAGE, init
 from itertools import groupby
 
-HGT_SERVER = "https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/North_America"
+#HGT_SERVER = "https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/North_America"
+HGT_SERVER = "https://cloudcapsupport.com/elevation/World-90m"
 
 def fetch(url):
     '''

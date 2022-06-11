@@ -12,7 +12,7 @@ export
 $(TMP)/panorama.zip: $(TMP)/panorama Makefile
 	rm -f $@
 	cd $(@D) && zip -r $(@F) $(<F)
-$(TMP)/panorama: manifest.json panorama.js .FORCE
+$(TMP)/panorama: panorama.js .FORCE
 	rm -rf $@
 	mkdir -p $@
 	cp -f $(filter-out .FORCE, $+) $@
